@@ -3,8 +3,7 @@
 # Project created by QtCreator 2018-02-27T14:52:32
 #
 #-------------------------------------------------
-
-QT       += core gui network
+QT       += core gui network axcontainer
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 TARGET = DT
@@ -27,7 +26,9 @@ SOURCES += \
         mainwindow.cpp \
     udp.cpp \
     command.cpp \
-    log.cpp
+    log.cpp \
+    excel_parser.cpp \
+    user_define_msg.cpp
 
 HEADERS += \
         mainwindow.h \
@@ -35,7 +36,10 @@ HEADERS += \
     command.h \
     define.h \
     index.h \
-    log.h
+    log.h \
+    tools.h \
+    excel_parser.h \
+    user_define_msg.h
 
 FORMS += \
         mainwindow.ui

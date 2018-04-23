@@ -34,8 +34,10 @@ public slots:
 public:
 	~Udp()
 	{
-		delete udpsocket_r;
-		delete udpsocket_t;
+        delete udpsocket_r;
+        udpsocket_r = nullptr;
+        delete udpsocket_t;
+        udpsocket_t = nullptr;
 	}
 	static Udp* instance()
 	{

@@ -3,8 +3,26 @@
 #include <cstdlib>
 #include "index.h"
 #include <QDebug>
+#include <map>
+#include <string>
 
 enum tsc_pid {VOS,LLC, CC, MM, RT, RM, VSW, SD, PD, BDBS = 32};
+namespace dt_dont_use_this {
+const std::map<std::string,tsc_pid> pidinfo = {
+    std::make_pair("VOS",VOS),
+    std::make_pair("LLC",LLC),
+    std::make_pair("CC",CC),
+    std::make_pair("MM",MM),
+    std::make_pair("RT",RT),
+    std::make_pair("RM",RM),
+    std::make_pair("VSW",VSW),
+    std::make_pair("SD",SD),
+    std::make_pair("BDBS",BDBS),
+};
+}
+
+#define TO_PID(x)       (*dt_dont_use_this::pidinfo.find((x))).second
+
 
 enum UDP_DATA_TYPE {
 	REMOTE_DEBUG_REQ = 0x70,//TSC远程调试消息
@@ -95,7 +113,7 @@ struct DebugStruct {
 };
 #pragma pack(pop)
 
-#define DEBUG_TOOL_VERSION "DT_0.0.00.001" "["__DATE__"_"__TIME__"]"
+#define DEBUG_TOOL_VERSION "DT_0.0.00.002" "["__DATE__"_"__TIME__"]"
 //接收端口 
 #define TSC_ExMAC_SignalRecvPort	(5503)
 //绑定端口 随便写的

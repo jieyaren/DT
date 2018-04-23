@@ -4,7 +4,7 @@
 #include <QMainWindow>
 #include <QString>
 #include <QJsonDocument>
-
+#include <QAxObject>
 namespace Ui {
 class MainWindow;
 }
@@ -36,17 +36,13 @@ private slots:
 
 	void on_CommandcomboBox_currentIndexChanged(const QString &arg1);
 
-	void on_textEdit_textChanged();
+
 
 private:
 	Ui::MainWindow *ui;
 	const QString applicationDirPath;
-	QJsonDocument json;
+	void initComboBoxList();
 
-	void loadCommandJson();
-
-	void loadCommandItemJson(QString PidString);
-	void loadCommandItemJson(QString PidString, QString CommandString);
 };
 
 #endif // MAINWINDOW_H

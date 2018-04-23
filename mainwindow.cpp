@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-#include <QFile>
+#include <algorithm>
+
 #include <QString>
 #include <QStringList>
 #include <QObject>
@@ -15,20 +16,29 @@
 #include <QJsonArray>
 
 #include <QVariant>
+#include <QAxObject>
+#include <QtEndian>
 
 #include "udp.h"
 #include "log.h"
+#include "tools.h"
+#include "user_define_msg.h"
+#include "excel_parser.h"
+
 
 MainWindow::MainWindow(QWidget *parent) :
 	QMainWindow(parent),
-	ui(new Ui::MainWindow),applicationDirPath(QCoreApplication::applicationDirPath())
+	ui(new Ui::MainWindow),
+	applicationDirPath(QCoreApplication::applicationDirPath())
+
 {
 	ui->setupUi(this);
 
 	qInstallMessageHandler(myMessageOutput);
 	connect(logger::instance(),SIGNAL(log_signnal(QString)),this,SLOT(on_log(QString)));
 	qInfo() << DEBUG_TOOL_VERSION;
-	loadCommandJson();
+	initComboBoxList();
+
 }
 
 MainWindow::~MainWindow()
@@ -36,18 +46,24 @@ MainWindow::~MainWindow()
 	delete ui;
 }
 
+void MainWindow::initComboBoxList()
+{
+	QStringList ModuleItem;
+	ModuleItem <<"LLC"<<"CC"<<"MM"<<"RM"<<"PD"<<"VSW"<<"SD"<<"BDBS";
+	ui->ModulecomboBox->addItems(ModuleItem);
+}
 void MainWindow::on_enterIPButton_clicked()
 {
 	QString ipinfo = ui->IPLineEdit->text();
 
 	if ((!ipinfo.isEmpty()) && (Udp::instance()->setIP(ipinfo)))
 	{
-		qDebug() << "Valid IP Address"<<Udp::instance()->ip();
+		qDebug() << "[Window] Valid IP Address"<<Udp::instance()->ip();
 	}
 	else
 	{
 		QMessageBox::warning(this, "warnning", "IP Invalid", QMessageBox::Yes);
-		qWarning("Invalid IP address");
+		qWarning("[Window] Invalid IP address");
 	}		   
 }
 
@@ -58,196 +74,9 @@ void MainWindow::on_log(const QString & msg)
 }
 
 
-
-struct RAII_FILE_HANDLE_WRITE
-{
-	QFile& i_;
-	explicit RAII_FILE_HANDLE_WRITE(QFile& in) : i_(in)
-	{
-		bool f = i_.open(QIODevice::WriteOnly | QIODevice::Append);
-		if (!f)
-			qWarning() << "[LOAD] can't write!";
-	}
-
-	~RAII_FILE_HANDLE_WRITE()
-	{
-		i_.close();
-	}
-};
-
-struct RAII_FILE_HANDLE_READ
-{
-	QFile& i_;
-	explicit RAII_FILE_HANDLE_READ(QFile& in): i_(in)
-	{
-		bool f =i_.open(QFile::ReadOnly);
-		if(!f)
-			qWarning() << "[LOAD] can't open or json file missing! if continue, you must write your msg with json format in left editer";
-	}
-
-	~RAII_FILE_HANDLE_READ()
-	{
-		i_.close();
-	}
-};
-
-void MainWindow::loadCommandJson()
-{
-	qDebug() << "loading json...";
-	QFile inputFile(applicationDirPath + "/cmd.json");
-
-	RAII_FILE_HANDLE_READ inputFileHandleGuard(inputFile);
-
-	//qDebug() << inputFile.readAll();
-	//这个操作会把inputfile内容清空导致后面构造失败
-	//我因为这个折腾了一上午
-		
-
-	QByteArray data = inputFile.readAll();
-	
-	json = QJsonDocument::fromJson(data);
-	//qDebug() << data;
-	if (json.isEmpty())
-	{
-		qWarning() << "[LOAD] Json File Empty or Format Error! you need write it in left text edit or add item in cmd.json!";
-	}
-
-	// JO->"cmd" : JA
-	//
-	QStringList ModuleItem;
-	QStringList CommandComboxItem;
-	QJsonObject jo = json.object();
-	if (jo.contains("cmd"))
-	{
-		QJsonArray c = jo.take("cmd").toArray();
-		for (QJsonArray::iterator i = c.begin(); i != c.end(); ++i)
-		{
-			//qInfo() << i->toObject().take("-pid").toString().toInt();
-			//qInfo() << i->toObject().take("-pid").toInt();真他妈服了
-			
-			QJsonArray ja = i->toObject().take("cmdinfo").toArray();
-			switch (i->toObject().take("pid").toString().toInt())
-			{
-			case LLC:
-				ModuleItem << "LLC";
-				for (QJsonArray::iterator j = ja.begin(); j != ja.end(); ++j)
-				{
-					CommandComboxItem << j->toObject().take("name").toString();
-				}
-				break;
-
-			case CC:
-				ModuleItem << "CC";
-				for (QJsonArray::iterator j = ja.begin(); j != ja.end(); ++j)
-				{
-					CommandComboxItem << j->toObject().take("name").toString();
-				}
-				break;
-
-			case MM:
-				ModuleItem << "MM";
-				for (QJsonArray::iterator j = ja.begin(); j != ja.end(); ++j)
-				{
-					CommandComboxItem << j->toObject().take("name").toString();
-				}
-				break;
-
-			case RT:
-				ModuleItem << "RT";
-				for (QJsonArray::iterator j = ja.begin(); j != ja.end(); ++j)
-				{
-					CommandComboxItem << j->toObject().take("name").toString();
-				}
-				break;
-
-			case RM:
-				ModuleItem << "RM";
-				for (QJsonArray::iterator j = ja.begin(); j != ja.end(); ++j)
-				{
-
-					CommandComboxItem << j->toObject().take("name").toString();
-				}
-				break;
-			case VSW:
-				ModuleItem << "VSW";
-				for (QJsonArray::iterator j = ja.begin(); j != ja.end(); ++j)
-				{
-					CommandComboxItem << j->toObject().take("name").toString();
-				}
-				break;
-
-			case BDBS:
-				ModuleItem << "BDBS";
-				for (QJsonArray::iterator j = ja.begin(); j != ja.end(); ++j)
-				{
-					CommandComboxItem << j->toObject().take("name").toString();
-				}
-				break;
-			default:
-				ModuleItem << "ALL";
-				break;
-			}
-		}
-	}
-
-	ui->ModulecomboBox->addItems(ModuleItem);
-	ui->CommandcomboBox->addItems(CommandComboxItem);
-
-	qDebug() << "loading json end";
-}
-
-
-void MainWindow::loadCommandItemJson(QString PidString,QString CommandString)
-{
-	QJsonArray c = json.object().take("cmd").toArray();
-
-	for (QJsonArray::iterator i = c.begin(); i != c.end(); ++i)
-	{
-		if (i->toObject().take("pid_name").toString() == PidString)
-		{
-			QJsonArray ja = i->toObject().take("cmdinfo").toArray();
-			for (QJsonArray::iterator j = ja.begin(); j != ja.end(); ++j)
-			{
-				if (CommandString == j->toObject().take("name").toString())
-				{
-					QJsonArray display = j->toObject().take("items").toArray();
-					//display.toVariantList()
-					//ui->textEdit->setPlainText();
-				}
-			}
-		}
-	}
-}
-
-
-void MainWindow::loadCommandItemJson(QString PidString)
-{
-	//update ComandComboboxItem
-	qDebug() << "update pid command " << PidString;
-	QStringList CommandComboxItem;
-	QJsonObject jo = json.object();
-	QJsonArray c = jo.take("cmd").toArray();
-	
-	for (QJsonArray::iterator i = c.begin(); i != c.end(); ++i)
-	{
-		if (i->toObject().take("pid_name").toString() == PidString)
-		{
-			QJsonArray ja = i->toObject().take("cmdinfo").toArray();
-			for (QJsonArray::iterator j = ja.begin(); j != ja.end(); ++j)
-			{
-				CommandComboxItem << j->toObject().take("name").toString();
-				qDebug() << j->toObject().take("name").toString();
-			}
-		}
-	}
-
-	ui->CommandcomboBox->clear();
-	ui->CommandcomboBox->addItems(CommandComboxItem);
-}
-
 void MainWindow::on_calcButton_clicked()
 {
-	qDebug() << "[EVENT] call calc...";
+	qDebug() << "[Window] call calc...";
 	system("calc");
 }
 
@@ -272,60 +101,163 @@ void MainWindow::on_saveLogButton_clicked()
 	RAII_FILE_HANDLE_WRITE logfile(file);
 	QTextStream in(&file);
 	in << str << "\n";
-	qDebug() << "[EVENT] Save Log "<<filename;
+	qDebug() << "[Window] Save Log "<<filename;
 }
 
 void MainWindow::on_execButton_clicked()
 {
-	if (ui->ModulecomboBox->currentText().isNull()||ui->CommandcomboBox->currentText().isNull())
+	
+	if (ui->ModulecomboBox->currentText().isNull()||ui->CommandcomboBox->currentText().isNull()||ui->IPLineEdit->text().isEmpty())
 	{
-		qWarning() << "[Window] Please Make Sure The Message Item";
+		qWarning() << "[Window] Please Check ip,Or Combobox Items";
 		return;
 	}
-
-	QJsonObject jo = json.object();
-	QJsonArray c = jo.take("cmd").toArray();
-	QJsonArray commandsave;
-	int pid = VOS;
-	unsigned int msg_code = static_cast<unsigned int>(-1);
-
-	for (QJsonArray::iterator i = c.begin(); i != c.end(); ++i)
-	{
-		if (i->toObject().take("pid_name").toString() != ui->ModulecomboBox->currentText())
-		{
-			continue;
-		}
-		pid = i->toObject().take("pid").toString().toInt();
-		QJsonArray ja = i->toObject().take("cmdinfo").toArray();
-		for (QJsonArray::iterator j = ja.begin(); j != ja.end(); ++j)
-		{
-			if (j->toObject().take("name").toString() != ui->CommandcomboBox->currentText())
-			{
-				continue;
-			}
-			commandsave = j->toObject().take("items").toArray();
-			msg_code = j->toObject().take("code").toString().toInt(nullptr,16);
-		}
-	}
 	
-	if (pid != VOS && msg_code != static_cast<unsigned int>(-1))
+	unsigned int msg_code = getMsgCode(ui->ModulecomboBox->currentText().toStdString(),
+									ui->CommandcomboBox->currentText().toStdString());
+
+	int datalen = 100;
+
+	if (ui->CommandcomboBox->currentText() == "GPS_START")
 	{
-		CommandExecSession::instance()->Exec((tsc_pid)pid, msg_code,commandsave);
+		QAxObject excel("Excel.Application");
+		excel.setProperty("Visible", false);
+		excel.setProperty("Caption", "Qt Excel");
+		QAxObject * workbooks = excel.querySubObject("WorkBooks");
+
+		workbooks->dynamicCall("Open (const QString&)", QString(applicationDirPath+"/gps.xlsx"));
+		QAxObject * workbook = excel.querySubObject("ActiveWorkBook");
+		QAxObject * worksheets = workbook->querySubObject("WorkSheets");
+		QAxObject * workbasesheet = workbook->querySubObject("Worksheets(int)", 1);
+
+		int intCount = worksheets->property("Count").toInt();
+		for (int i = 2; i <= intCount; i++)
+		{
+			msg_code = 1;
+			int intVal;
+			QAxObject * worksheet = workbook->querySubObject("Worksheets(int)", i);
+			qDebug() << i << worksheet->property("Name").toString();
+			QList<QList<QVariant>> v=  excel_parser::instance().readSheet(worksheet);
+			
+			
+			auto desptr = CommandExecSession::instance()->command_msg_ptr();
+			//LLC_GPSPOLL_CycleTime_Stru* msgptr = (LLC_GPSPOLL_CycleTime_Stru*) CommandExecSession::instance()->command_msg_ptr(handle);
+			LLC_GPSPOLL_CycleTime_Stru msg;
+			char buffer[sizeof(LLC_GPSPOLL_CycleTime_Stru)] = { 0 };
+			LLC_GPSPOLL_CycleTime_Stru* msgptr = &msg;
+
+			auto times = sizeof(LLC_GPSPOLL_CycleTime_Stru) / MSG_BODY_LENGTH + 1;
+			const int AllCount = times;
+
+			QAxObject * cell2 = workbasesheet->querySubObject("Cells(int,int)", i, 2);
+			QAxObject * cell3 = workbasesheet->querySubObject("Cells(int,int)", i, 3);
+			QAxObject * cell4 = workbasesheet->querySubObject("Cells(int,int)", i, 4);
+			QAxObject * cell5 = workbasesheet->querySubObject("Cells(int,int)",  i, 5);
+			msgptr->PollTime_Cycle = qToBigEndian<quint32>( cell2->dynamicCall("Value2()").toString().toInt());
+			msgptr->SavedCount = qToBigEndian<quint32>(cell3->dynamicCall("Value2()").toString().toInt());
+			msgptr->MSMAX_Count = qToBigEndian<quint32>(cell4->dynamicCall("Value2()").toString().toInt());
+			msgptr->MSPOLLed_Index = qToBigEndian<quint32>( cell5->dynamicCall("Value2()").toString().toInt());
+			delete cell2;
+			delete cell3;
+			delete cell4;
+			delete cell5;
+			qDebug()<< qToBigEndian<quint32>(msgptr->PollTime_Cycle)<<" "
+					<< qToBigEndian<quint32>(msgptr->SavedCount )<<" "
+					<< qToBigEndian<quint32> (msgptr->MSMAX_Count)<<" "
+					<< qToBigEndian<quint32>(msgptr->MSPOLLed_Index)<<""
+					<<"len"<<sizeof(*msgptr);
+			
+			auto ind = 0;
+			for (QList<QVariant> lv: v)
+			{
+				auto i = 0;
+				//qDebug() << lv;
+				if (lv == *v.begin())
+				{
+					continue;
+				}
+				lv.pop_front();
+
+				msgptr->MS_GPSPOLL[ind].MSAddress = qToBigEndian<quint32> (lv.first().toString().toInt());
+				lv.pop_front();
+				msgptr->MS_GPSPOLL[ind].MsgHandle = qToBigEndian<quint32>(lv.first().toString().toInt());
+				lv.pop_front();
+				msgptr->MS_GPSPOLL[ind].AB = lv.first().toString().toInt();
+				lv.pop_front();
+				msgptr->MS_GPSPOLL[ind].GPS_Type = lv.first().toString().toInt();
+				lv.pop_front();
+				msgptr->MS_GPSPOLL[ind].Ms_Priority = lv.first().toString().toInt();
+				lv.pop_front();
+				msgptr->MS_GPSPOLL[ind].Begin_Time = qToBigEndian<quint32>(lv.first().toString().toInt());
+				lv.pop_front();
+				msgptr->MS_GPSPOLL[ind].PolledTime_Last = qToBigEndian<quint32>(lv.first().toString().toInt());
+				lv.pop_front();
+				msgptr->MS_GPSPOLL[ind].PolledTime_Curr = qToBigEndian<quint32>(lv.first().toString().toInt());
+				lv.pop_front();
+				msgptr->MS_GPSPOLL[ind].Subscribe_Cycle = qToBigEndian<quint32>(lv.first().toString().toInt());
+				lv.pop_front();
+				msgptr->MS_GPSPOLL[ind].Speed_Status = lv.first().toString().toInt();
+				lv.pop_front();
+				msgptr->MS_GPSPOLL[ind].Status_Count = qToBigEndian<quint32>(lv.first().toString().toInt());
+				lv.pop_front();
+
+				ind++;
+			}
+			memcpy(buffer, msgptr, sizeof(LLC_GPSPOLL_CycleTime_Stru));
+
+
+			auto all_length = sizeof(LLC_GPSPOLL_CycleTime_Stru);
+			auto index = 0;
+			while (times--)
+			{
+
+				all_length = all_length - MSG_BODY_LENGTH;
+				auto copy_lenth = all_length > MSG_BODY_LENGTH ? MSG_BODY_LENGTH : all_length;
+				for (auto i=0;i<copy_lenth;i++)
+				{
+					desptr[i] = buffer[i+index];
+				}
+				index += MSG_BODY_LENGTH;
+
+// 				char * p = (char*)msgptr;
+// 				memcpy(p, desptr, copy_lenth);
+// 				//auto iter = std::copy_n(p, MSG_BODY_LENGTH,desptr);
+				CommandExecSession::instance()->Exec(
+									TO_PID(ui->ModulecomboBox->currentText().toStdString()), 
+									msg_code, 
+									copy_lenth, AllCount -times, AllCount);
+// 
+// 				msgptr =(LLC_GPSPOLL_CycleTime_Stru*) &((char *)msgptr)[MSG_BODY_LENGTH*(AllCount - times-1) + copy_lenth];
+				index++;
+				
+			}
+
+		}
+
 	}
+	else
+	{
+		CommandExecSession::instance()->Exec(TO_PID(ui->ModulecomboBox->currentText().toStdString()),msg_code);
+	}
+
 }
+
+
 
 void MainWindow::on_ModulecomboBox_currentIndexChanged(const QString &arg1)
 {
-	loadCommandItemJson(arg1);
-	loadCommandItemJson(arg1, ui->CommandcomboBox->currentText());
+	qDebug()<< "[Window] Module Change to "<<arg1;
+	QStringList CommandcomBoxList = getMsgList(arg1.toStdString());
+
+//临时为LLC写的
+// 	if (arg1 == "LLC")
+// 		//CommandcomBoxList << "GPS_STOP"<< "GPS_START";
+
+	ui->CommandcomboBox->clear();
+	ui->CommandcomboBox->addItems(CommandcomBoxList);
 }
 
 void MainWindow::on_CommandcomboBox_currentIndexChanged(const QString &arg1)
 {
-	loadCommandItemJson(ui->ModulecomboBox->currentText(),arg1);
-}
-
-void MainWindow::on_textEdit_textChanged()
-{
-	
+	qDebug()<< "[Window] Command Change to " << arg1;
 }
