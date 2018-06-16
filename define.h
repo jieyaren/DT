@@ -42,7 +42,7 @@ struct DebugStruct {
 	quint32 MsgType;
 	quint8 ReceiverPid;
 	quint8 MsgCount;//总发送次数 默认1
-	quint8 CurrentCount;//当前发送次数 1
+	quint8 CurrentCount;//当前发送次数 
 	quint16 DataLen;// 数组字节长度默认0
 	quint8 MsgBody[MSG_BODY_LENGTH];//消息内容
 	DebugStruct()

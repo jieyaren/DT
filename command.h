@@ -23,9 +23,9 @@ signals:
 	void udp_send_signal(const DebugStruct&);
 public:
 	~CommandExecSession() { delete s; }
-    void Exec(const tsc_pid& pid,const quint32 msg_code,
+	void Exec(const tsc_pid& pid,const quint32 msg_code,
 			quint16 datalen=100, size_t CurrentCount = 1,size_t AllCount=1)
-    {
+	{
 		if (command[current_handle].CurrentCount == 0)
 		{
 			current_handle = index::instance().alloc();
@@ -47,11 +47,15 @@ public:
 		emit_command();
 		command[current_handle].CurrentCount--;
 
-    }
-    quint8 * command_msg_ptr()
-    {
-        return command[current_handle].MsgBody;
-    }
+	}
+	quint8 * command_msg_ptr()
+	{
+		if (command[current_handle].CurrentCount == 0)
+		{
+			current_handle = index::instance().alloc();
+		}
+		return command[current_handle].MsgBody;
+	}
 	quint16& msg_len()
 	{
 		return command[current_handle].DataLen;

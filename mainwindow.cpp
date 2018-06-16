@@ -235,8 +235,40 @@ void MainWindow::on_execButton_clicked()
 		}
 
 	}
+// 	else if (ui->CommandcomboBox->currentText() == "SD_PRINT_Single_MS_GPS")
+// 	{
+// 		quint32 msi_number = 0;
+// 		QLineEdit msi(ui->widget);
+// 		bool not_finished = true;
+// 
+// 		connect(&msi, &QLineEdit::editingFinished, this, [&]() {not_finished = false; });
+// 		msi.setText("MSI");
+// 		msi.setGeometry(400, 400, 400, 22);
+// 		//msi.setFrame(false);
+// 		msi.show();
+// 		sleep(6000);
+// // 		while (not_finished)
+// // 		{
+// // 			qDebug() << "enter number " << msi_number;
+// // 		}
+// 
+// 		msi_number = msi.text().toInt();
+// 		
+// 		qDebug() << "msi " << msi_number;
+// 		quint8 * msg =CommandExecSession::instance()->command_msg_ptr();
+// 		struct tmp_msi
+// 		{
+// 			quint32 msi;
+// 		};
+// 
+// 		tmp_msi * pmsg = (tmp_msi*)msg;
+// 		pmsg->msi = qToBigEndian<quint32>(msi_number);
+// 		CommandExecSession::instance()->Exec(TO_PID(ui->ModulecomboBox->currentText().toStdString()), msg_code);
+// 		
+// 	}
 	else
 	{
+	
 		CommandExecSession::instance()->Exec(TO_PID(ui->ModulecomboBox->currentText().toStdString()),msg_code);
 	}
 

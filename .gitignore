@@ -1,0 +1,7 @@
+*.ipch
+*.suo
+/GeneratedFiles
+/.vs
+/release
+/debug
+/x64
